@@ -1,0 +1,35 @@
+import os
+import cv2
+from pydicom import dcmread
+
+def convert_dicom_to_jpg(dicom_path, output_folder):
+    # Load DICOM image using PyDicom
+    dicom_data = dcmread(dicom_path)
+    dicom_image = dicom_data.pixel_array
+
+    # Convert DICOM image to 8-bit unsigned integer
+    dicom_image_uint8 = cv2.normalize(dicom_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+    # Save the 8-bit image as JPG
+    file_name = os.path.splitext(os.path.basename(dicom_path))[0]
+    output_path_jpg = os.path.join(output_folder, f'{file_name}.jpg')
+    cv2.imwrite(output_path_jpg, dicom_image_uint8)
+
+def convert_dicom_folder(input_folder, output_folder):
+    # Create output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Iterate through DICOM files in the input folder
+    for root, dirs, files in os.walk(input_folder):
+        for file in files:
+            if file.endswith('.dcm'):
+                dicom_path = os.path.join(root, file)
+                convert_dicom_to_jpg(dicom_path, output_folder)
+
+# Ganti dengan direktori yang sesuai
+input_folder_pet = 'D:/Kuliah S3/semester 3/Studi Interdisiplin/data metode/cyPET/testB-1'
+output_folder = 'D:/Kuliah S3/semester 3/Studi Interdisiplin/data metode/cyPET/testB'
+
+# Konversi citra DICOM ke JPG dan simpan ke folder baru
+convert_dicom_folder(input_folder_pet, output_folder)

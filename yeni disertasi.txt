@@ -2,3 +2,5 @@ saya sedang melakukan proses PVC
 database  lung PET
 CycleGAN
 uNET
+LAPORAN 28 NOV
+PAPER 28 DES

@@ -1,0 +1,67 @@
+import os
+import cv2
+import numpy as np
+from skimage import exposure
+from pydicom import dcmread
+from pydicom.pixel_data_handlers.util import apply_voi_lut
+import matplotlib.pyplot as plt
+
+def load_dicom_image(file_path):
+    dicom_data = dcmread(file_path)
+    pixel_array = apply_voi_lut(dicom_data.pixel_array, dicom_data)
+    return pixel_array
+
+def display_images(images, titles, cmaps):
+    num_images = len(images)
+    fig, axs = plt.subplots(1, num_images, figsize=(15, 5))
+    for i in range(num_images):
+        axs[i].imshow(images[i], cmap=cmaps[i])
+        axs[i].set_title(titles[i])
+        axs[i].axis('off')
+    plt.show()
+
+# Fungsi untuk melakukan normalisasi
+def normalize_dicom_image(dicom_image):
+    # Normalisasi ke rentang [0, 1]
+    return (dicom_image - np.min(dicom_image)) / (np.max(dicom_image) - np.min(dicom_image))
+
+# Ganti dengan direktori yang sesuai
+folder_LungPVC = 'D:/Kuliah S3/semester 3/Studi Interdisiplin/data metode/cyPET/trainB-1'
+
+# Folder tempat Anda ingin menyimpan citra clahe
+output_folder = 'D:/Kuliah S3/semester 3/Studi Interdisiplin/data metode/cyPET1/trainA'
+
+# Pastikan folder output ada atau buat jika belum ada
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# Iterasi melalui citra DICOM dalam folder
+for root, dirs, files in os.walk(folder_LungPVC):
+    for file in files:
+        if file.endswith('.dcm'):
+            dicom_path = os.path.join(root, file)
+            dicom_data = dcmread(dicom_path)
+            original_image = dicom_data.pixel_array
+            normalized_image = normalize_dicom_image(original_image)
+            
+            # Convert DICOM image to 8-bit unsigned integer
+            dicom_image_uint8 = cv2.normalize(normalized_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+            # Convert DICOM image to RGB for display
+            rgb_image = cv2.cvtColor(dicom_image_uint8, cv2.COLOR_GRAY2RGB)
+
+            # Apply histogram equalization
+            hist_eq_image = exposure.equalize_hist(normalized_image)
+
+            # Apply CLAHE
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+            clahe_image = clahe.apply(dicom_image_uint8)
+
+            # Display the images
+            display_images([rgb_image, hist_eq_image, clahe_image],
+                           ['Original DICOM Image', 'Histogram Equalization', 'CLAHE'],
+                           ['gray', 'gray', 'gray'])
+
+            # Konversi citra hasil segmentasi ke format JPG
+            output_path_jpg = os.path.join(output_folder, f'{file.replace(".dcm", "_clahe.jpg")}')
+            cv2.imwrite(output_path_jpg, clahe_image)
